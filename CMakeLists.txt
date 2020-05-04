@@ -7,6 +7,9 @@ project(
     LANGUAGES CXX
 )
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+find_package(Sanitizers)
+
 add_executable(given_implem given_implem.cpp)
 target_compile_features(given_implem PRIVATE cxx_std_11)
 
@@ -15,6 +18,7 @@ set(parts_file ${CMAKE_SOURCE_DIR}/vehicle_parts.txt)
 add_executable(spaceship-generator main.cpp)
 target_compile_features(spaceship-generator PRIVATE cxx_std_20)
 target_compile_definitions(spaceship-generator PRIVATE PARTS_FILE="${parts_file}")
+add_sanitizers(spaceship-generator)
 # More warnings and treats them as errors
 if(MSVC)
   target_compile_options(spaceship-generator PRIVATE /W4 /WX)
