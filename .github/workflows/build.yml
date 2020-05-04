@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: 'ubuntu:20.04'
+
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: | 
+        DEBIAN_FRONTEND=noninteractive apt-get update -y
+        DEBIAN_FRONTEND=noninteractive apt-get install -y g++ cmake
+        
+    - name: Build project
+      run: |
+        cd $GITHUB_WORKSPACE
+        mkdir build && cd build
+        cmake ..
+        cmake --build . --parallel
+        
+    - name: Run program
+      run: |
+        cd $GITHUB_WORKSPACE/build
+        ./spaceship-generator --verbose
