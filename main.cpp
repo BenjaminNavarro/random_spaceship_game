@@ -13,6 +13,128 @@ char partsFileName[128] = "vehicle_parts.txt";
 
 std::vector<std::string> allParts;
 
+template <typename Tag> class Part {
+public:
+    explicit Part(std::string description)
+        : description_{std::move(description)} {
+    }
+
+    const std::string& description() const {
+        return description_;
+    }
+
+private:
+    std::string description_;
+};
+
+namespace tags {
+class Engine;
+class Wing;
+class Fuselage;
+class Cabin;
+class Armor;
+class Shield;
+class Weapon;
+} // namespace tags
+
+using Engine = Part<tags::Engine>;
+using Wing = Part<tags::Wing>;
+using Fuselage = Part<tags::Fuselage>;
+using Cabin = Part<tags::Cabin>;
+using Armor = Part<tags::Armor>;
+using Shield = Part<tags::Shield>;
+using Weapon = Part<tags::Weapon>;
+
+class Warehouse {
+public:
+    const std::vector<Engine>& engines() const {
+        return engines_;
+    }
+
+    const std::vector<Wing>& wings() const {
+        return wings_;
+    }
+
+    const std::vector<Fuselage>& fuselages() const {
+        return fuselage_;
+    }
+
+    const std::vector<Cabin>& cabins() const {
+        return cabin_;
+    }
+
+    const std::vector<Armor>& armors() const {
+        return armor_;
+    }
+
+    const std::vector<Shield>& shields() const {
+        return shield_;
+    }
+
+    const std::vector<Weapon>& weapons() const {
+        return weapon_;
+    }
+
+    Warehouse& add(std::string description) {
+        if (description.ends_with("engine")) {
+            engines_.emplace_back(std::move(description));
+        } else if (description.ends_with("wings")) {
+            wings_.emplace_back(std::move(description));
+        } else if (description.ends_with("fuselage")) {
+            fuselage_.emplace_back(std::move(description));
+        } else if (description.ends_with("cabin")) {
+            cabin_.emplace_back(std::move(description));
+        } else if (description.ends_with("armor")) {
+            armor_.emplace_back(std::move(description));
+        } else if (description.ends_with("shield")) {
+            shield_.emplace_back(std::move(description));
+        } else if (description.ends_with("weapon")) {
+            weapon_.emplace_back(std::move(description));
+        } else {
+            const auto type = [&description]() -> std::string {
+                if (const auto type_start = description.rfind(' ');
+                    type_start != std::string::npos) {
+                    return description.substr(type_start + 1);
+                } else {
+                    return {};
+                }
+            }();
+            throw std::out_of_range("The part type " + type +
+                                    " is not a valid spaceship part");
+        }
+
+        return *this;
+    }
+
+    void printContent() {
+        auto print_vector = [](const auto& vec, const char* name) {
+            if (!vec.empty()) {
+                std::cout << name << ":\n";
+                for (const auto& part : vec) {
+                    std::cout << "\t- " << part.description() << '\n';
+                }
+            }
+        };
+        std::cout << "The warehouse currently have these elements in stock:\n";
+        print_vector(engines(), "engines");
+        print_vector(wings(), "wings");
+        print_vector(fuselages(), "fuselage");
+        print_vector(cabins(), "cabin");
+        print_vector(armors(), "armor");
+        print_vector(shields(), "shield");
+        print_vector(weapons(), "weapon");
+    }
+
+private:
+    std::vector<Engine> engines_;
+    std::vector<Wing> wings_;
+    std::vector<Fuselage> fuselage_;
+    std::vector<Cabin> cabin_;
+    std::vector<Armor> armor_;
+    std::vector<Shield> shield_;
+    std::vector<Weapon> weapon_;
+};
+
 class Spaceship {
 public:
     static void GenerateShip(Spaceship* pOutShip);
@@ -100,15 +222,20 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Loading parts from: " << parts_file << '\n';
 
+    Warehouse warehouse;
+
     if (std::ifstream file{parts_file}; file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
+            warehouse.add(line);
             allParts.push_back(line);
         }
     } else {
         std::cerr << "Failed to open file " << parts_file << std::endl;
         std::exit(-1);
     }
+
+    warehouse.printContent();
 
     Spaceship sp;
     Spaceship::GenerateShip(&sp);
