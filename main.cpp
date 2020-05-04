@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include <string_view>
+#include <sstream>
 
 char partsFileName[128] = "vehicle_parts.txt";
 
@@ -19,7 +20,7 @@ public:
         : description_{std::move(description)} {
     }
 
-    const std::string& description() const {
+    [[nodiscard]] const std::string& description() const {
         return description_;
     }
 
@@ -27,51 +28,85 @@ private:
     std::string description_;
 };
 
+template <typename PartTag>
+std::ostream& operator<<(std::ostream& out, const Part<PartTag>& part) {
+    out << part.description();
+    return out;
+}
+
 namespace tags {
 class Engine;
-class Wing;
 class Fuselage;
 class Cabin;
 class Armor;
-class Shield;
+class SmallWing;
+class LargeWing;
 class Weapon;
 } // namespace tags
 
 using Engine = Part<tags::Engine>;
-using Wing = Part<tags::Wing>;
+using SmallWing = Part<tags::SmallWing>;
+using LargeWing = Part<tags::LargeWing>;
 using Fuselage = Part<tags::Fuselage>;
 using Cabin = Part<tags::Cabin>;
 using Armor = Part<tags::Armor>;
-using Shield = Part<tags::Shield>;
 using Weapon = Part<tags::Weapon>;
 
 class Warehouse {
 public:
-    const std::vector<Engine>& engines() const {
+    [[nodiscard]] const std::vector<Engine>& engines() const {
         return engines_;
     }
 
-    const std::vector<Wing>& wings() const {
-        return wings_;
+    [[nodiscard]] std::vector<Engine>& engines() {
+        return engines_;
     }
 
-    const std::vector<Fuselage>& fuselages() const {
+    [[nodiscard]] const std::vector<SmallWing>& smallWings() const {
+        return small_wings_;
+    }
+
+    [[nodiscard]] std::vector<SmallWing>& smallWings() {
+        return small_wings_;
+    }
+
+    [[nodiscard]] const std::vector<LargeWing>& largeWings() const {
+        return large_wings_;
+    }
+
+    [[nodiscard]] std::vector<LargeWing>& largeWings() {
+        return large_wings_;
+    }
+
+    [[nodiscard]] const std::vector<Fuselage>& fuselages() const {
         return fuselage_;
     }
 
-    const std::vector<Cabin>& cabins() const {
+    [[nodiscard]] std::vector<Fuselage>& fuselages() {
+        return fuselage_;
+    }
+
+    [[nodiscard]] const std::vector<Cabin>& cabins() const {
         return cabin_;
     }
 
-    const std::vector<Armor>& armors() const {
+    [[nodiscard]] std::vector<Cabin>& cabins() {
+        return cabin_;
+    }
+
+    [[nodiscard]] const std::vector<Armor>& armors() const {
         return armor_;
     }
 
-    const std::vector<Shield>& shields() const {
-        return shield_;
+    [[nodiscard]] std::vector<Armor>& armors() {
+        return armor_;
     }
 
-    const std::vector<Weapon>& weapons() const {
+    [[nodiscard]] const std::vector<Weapon>& weapons() const {
+        return weapon_;
+    }
+
+    [[nodiscard]] std::vector<Weapon>& weapons() {
         return weapon_;
     }
 
@@ -79,15 +114,28 @@ public:
         if (description.ends_with("engine")) {
             engines_.emplace_back(std::move(description));
         } else if (description.ends_with("wings")) {
-            wings_.emplace_back(std::move(description));
+            if (description.starts_with("small")) {
+                small_wings_.emplace_back(std::move(description));
+            } else if (description.starts_with("large")) {
+                large_wings_.emplace_back(std::move(description));
+            } else {
+                const auto type = [&description]() -> std::string {
+                    if (const auto type_end = description.find(' ');
+                        type_end != std::string::npos) {
+                        return description.substr(0, type_end);
+                    } else {
+                        return {};
+                    }
+                }();
+                std::cerr << "The wing type [" << type
+                          << "] is not a valid spaceship wing type, skipping\n";
+            }
         } else if (description.ends_with("fuselage")) {
             fuselage_.emplace_back(std::move(description));
         } else if (description.ends_with("cabin")) {
             cabin_.emplace_back(std::move(description));
         } else if (description.ends_with("armor")) {
             armor_.emplace_back(std::move(description));
-        } else if (description.ends_with("shield")) {
-            shield_.emplace_back(std::move(description));
         } else if (description.ends_with("weapon")) {
             weapon_.emplace_back(std::move(description));
         } else {
@@ -99,112 +147,166 @@ public:
                     return {};
                 }
             }();
-            throw std::out_of_range("The part type " + type +
-                                    " is not a valid spaceship part");
+            std::cerr << "The part type [" << type
+                      << "] is not a valid spaceship part, skipping\n";
         }
 
         return *this;
     }
 
-    void printContent() {
-        auto print_vector = [](const auto& vec, const char* name) {
-            if (!vec.empty()) {
-                std::cout << name << ":\n";
-                for (const auto& part : vec) {
-                    std::cout << "\t- " << part.description() << '\n';
-                }
+    [[nodiscard]] std::string description() {
+        std::stringstream ss;
+        auto print_vector = [&ss](const auto& vec, const char* name) {
+            ss << name << ":\n";
+            for (const auto& part : vec) {
+                ss << "\t- " << part.description() << '\n';
             }
         };
-        std::cout << "The warehouse currently have these elements in stock:\n";
         print_vector(engines(), "engines");
-        print_vector(wings(), "wings");
+        print_vector(smallWings(), "small wings");
+        print_vector(largeWings(), "large wings");
         print_vector(fuselages(), "fuselage");
         print_vector(cabins(), "cabin");
         print_vector(armors(), "armor");
-        print_vector(shields(), "shield");
         print_vector(weapons(), "weapon");
+        return ss.str();
     }
 
 private:
     std::vector<Engine> engines_;
-    std::vector<Wing> wings_;
+    std::vector<SmallWing> small_wings_;
+    std::vector<LargeWing> large_wings_;
     std::vector<Fuselage> fuselage_;
     std::vector<Cabin> cabin_;
     std::vector<Armor> armor_;
-    std::vector<Shield> shield_;
     std::vector<Weapon> weapon_;
 };
 
 class Spaceship {
 public:
-    static void GenerateShip(Spaceship* pOutShip);
+    constexpr static int max_weapon_count = 4;
 
-    void Print() {
-        std::cout << "A ship with ";
-        std::cout << _engine << ", ";
-        std::cout << _fuselage << ", ";
-        std::cout << _cabin << ", ";
-        if (!_large_wings.empty())
-            std::cout << _large_wings << ", ";
-        if (!_small_wings.empty())
-            std::cout << _small_wings << ", ";
-        std::cout << _armor << ", ";
-        std::cout << "weapons: ";
-        for (int i = 0; i < 4; ++i)
-            if (!_weapons[i].empty())
-                std::cout << _weapons[i] << ", ";
+    //! \brief Builds a new spaceship by taking random parts from the warehouse
+    //!
+    //! All the parts taken to build the spaceship will be removed from the
+    //! warehouse
+    //!
+    //! \param warehouse The warehouse to take parts from
+    //! \return std::optional<Spaceship> The built spaceship, or std::nullopt if
+    //! the required parts cannot be found in the warehouse
+    [[nodiscard]] static std::optional<Spaceship> Build(Warehouse& warehouse);
+
+    Spaceship(Engine engine, Fuselage fuselage, Cabin cabin, Armor armor,
+              std::optional<SmallWing> small_wings = std::nullopt,
+              std::optional<LargeWing> large_wings = std::nullopt,
+              std::array<std::optional<Weapon>, max_weapon_count> weapons = {})
+        : engine_{std::move(engine)},
+          fuselage_{std::move(fuselage)},
+          cabin_{std::move(cabin)},
+          armor_{std::move(armor)},
+          small_wings_{std::move(small_wings)},
+          large_wings_{std::move(large_wings)},
+          weapons_{std::move(weapons)} {
+    }
+
+    [[nodiscard]] std::string description() {
+        std::stringstream ss;
+        ss << "A ship with ";
+        ss << engine_ << ", ";
+        ss << fuselage_ << ", ";
+        ss << cabin_ << ", ";
+        if (large_wings_.has_value()) {
+            ss << large_wings_.value() << ", ";
+        }
+        if (small_wings_.has_value()) {
+            ss << small_wings_.value() << ", ";
+        }
+        ss << armor_ << " and ";
+        const auto weapon_count = weaponCount();
+        if (weapon_count == 0) {
+            ss << "no weapons";
+        } else if (weapon_count == 1) {
+            ss << "1 weapon: ";
+        } else {
+            ss << weapon_count << " weapons: ";
+        }
+        for (const auto& weapon : weapons_) {
+            if (weapon.has_value()) {
+                ss << weapon.value() << ", ";
+            }
+        }
+        return ss.str();
+    }
+
+    [[nodiscard]] constexpr int weaponCount() const {
+        int count{0};
+        for (const auto& weapon : weapons_) {
+            if (weapon.has_value()) {
+                ++count;
+            }
+        }
+        return count;
     }
 
 private:
-    std::string _engine;
-    std::string _fuselage;
-    std::string _cabin;
-    std::string _large_wings; // optional
-    std::string _small_wings; // optional
-    std::string _armor;
-    std::string _weapons[4]; // max weapon count is 4
+    Engine engine_;
+    Fuselage fuselage_;
+    Cabin cabin_;
+    Armor armor_;
+    std::optional<SmallWing> small_wings_;
+    std::optional<LargeWing> large_wings_;
+    std::array<std::optional<Weapon>, max_weapon_count> weapons_;
 };
 
-void Spaceship::GenerateShip(Spaceship* pOutShip) {
-    std::vector<std::string> engineParts;
-    std::vector<std::string> fuselageParts;
-    std::vector<std::string> cabinParts;
-    std::vector<std::string> wingsParts;
-    std::vector<std::string> armorParts;
-    std::vector<std::string> weaponParts;
+std::optional<Spaceship> Spaceship::Build(Warehouse& warehouse) {
+    const auto has_requried_parts = [&warehouse]() -> bool {
+        return !warehouse.engines().empty() && !warehouse.fuselages().empty() &&
+               !warehouse.cabins().empty() && !warehouse.armors().empty();
+    }();
 
-    for (const auto& str : allParts) {
-        if (str.rfind("engine") != std::string::npos)
-            engineParts.push_back(str);
-        else if (str.rfind("fuselage") != std::string::npos)
-            fuselageParts.push_back(str);
-        else if (str.rfind("cabin") != std::string::npos)
-            cabinParts.push_back(str);
-        else if (str.rfind("wings") != std::string::npos)
-            wingsParts.push_back(str);
-        else if (str.rfind("armor") != std::string::npos)
-            armorParts.push_back(str);
-        else if (str.rfind("weapon") != std::string::npos)
-            weaponParts.push_back(str);
+    if (!has_requried_parts) {
+        return std::nullopt;
     }
 
     std::random_device rd;
-    std::mt19937 g(rd());
+    std::mt19937 gen(rd());
+    auto take_random_part = [&gen](auto& parts) {
+        auto dist = std::uniform_int_distribution<int>(0, parts.size() - 1);
+        const auto part_index = dist(gen);
+        const auto part = parts[part_index];
+        parts.erase(parts.begin() + part_index);
+        return part;
+    };
 
-    std::shuffle(engineParts.begin(), engineParts.end(), g);
-    std::shuffle(fuselageParts.begin(), fuselageParts.end(), g);
-    std::shuffle(cabinParts.begin(), cabinParts.end(), g);
-    std::shuffle(wingsParts.begin(), wingsParts.end(), g);
-    std::shuffle(armorParts.begin(), armorParts.end(), g);
-    std::shuffle(weaponParts.begin(), weaponParts.end(), g);
+    auto take_random_optional =
+        [&gen]<typename PartType>(std::vector<PartType>& parts,
+                                  double probability =
+                                      1.) -> std::optional<PartType> {
+        if (auto skip_part =
+                std::uniform_real_distribution<>(0, 1)(gen) > probability;
+            skip_part || parts.empty()) {
+            return std::nullopt;
+        } else {
+            auto dist = std::uniform_int_distribution<int>(0, parts.size() - 1);
+            const auto part_index = dist(gen);
+            const auto part = parts[part_index];
+            parts.erase(parts.begin() + part_index);
+            return part;
+        }
+    };
 
-    // select parts:
-    pOutShip->_engine = engineParts[0];
-    pOutShip->_fuselage = fuselageParts[0];
-    pOutShip->_cabin = cabinParts[0];
-    pOutShip->_armor = armorParts[0];
-    pOutShip->_large_wings = wingsParts[0];
-    pOutShip->_weapons[0] = weaponParts[0];
+    decltype(Spaceship::weapons_) weapons;
+    for (auto& weapon : weapons) {
+        weapon = take_random_optional(warehouse.weapons(), 0.25);
+    }
+
+    return Spaceship{take_random_part(warehouse.engines()),
+                     take_random_part(warehouse.fuselages()),
+                     take_random_part(warehouse.cabins()),
+                     take_random_part(warehouse.armors()),
+                     take_random_optional(warehouse.smallWings(), 0.5),
+                     take_random_optional(warehouse.largeWings(), 0.5),
+                     std::move(weapons)};
 }
 
 int main(int argc, char* argv[]) {
@@ -235,9 +337,18 @@ int main(int argc, char* argv[]) {
         std::exit(-1);
     }
 
-    warehouse.printContent();
-
-    Spaceship sp;
-    Spaceship::GenerateShip(&sp);
-    sp.Print();
+    while (true) {
+        std::cout << "Trying to build a spaceship using the following "
+                     "available parts:\n";
+        std::cout << warehouse.description() << '\n';
+        auto space_ship = Spaceship::Build(warehouse);
+        if (space_ship.has_value()) {
+            std::cout << "We built the following spaceship: ";
+            std::cout << space_ship->description() << "\n\n";
+        } else {
+            std::cout
+                << "Sorry, not enough parts to build a spaceship, exiting\n";
+            break;
+        }
+    }
 }
