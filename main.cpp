@@ -138,7 +138,43 @@ private:
 
 } // namespace space
 
+namespace utils {
+class Logger {
+public:
+    Logger(bool verbose) : verbose_{verbose} {
+    }
+
+    std::ostream& important() {
+        return std::cout;
+    }
+
+    std::ostream& optional() {
+        if (verbose_) {
+            return important();
+        } else {
+            return dump_;
+        }
+    }
+
+private:
+    bool verbose_;
+    std::ofstream dump_;
+};
+} // namespace utils
+
 int main(int argc, char* argv[]) {
+    const auto verbose = [&argc, &argv]() -> bool {
+        using namespace std::literals;
+        for (int i = 1; i < argc; i++) {
+            if (std::string_view(argv[i]) == "--verbose"sv) {
+                std::copy_n(&argv[i + 1], argc - i, &argv[i]);
+                --argc;
+                return true;
+            }
+        }
+        return false;
+    }();
+
     const auto parts_file = [argc, argv]() -> std::string {
         if (argc == 2) {
             return argv[1];
@@ -151,10 +187,10 @@ int main(int argc, char* argv[]) {
         }
     }();
 
-    std::cout << "Loading parts from " << parts_file << '\n';
-
+    utils::Logger log{verbose};
     space::Warehouse warehouse;
 
+    log.optional() << "Loading parts from " << parts_file << '\n';
     if (std::ifstream file{parts_file}; file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
@@ -166,15 +202,15 @@ int main(int argc, char* argv[]) {
     }
 
     while (true) {
-        std::cout << "Trying to build a spaceship using the following "
-                     "available parts:\n";
-        std::cout << warehouse.description() << '\n';
+        log.optional() << "Trying to build a spaceship using the following "
+                          "available parts:\n";
+        log.optional() << warehouse.description() << '\n';
         auto space_ship = space::Spaceship::Build(warehouse);
         if (space_ship.has_value()) {
-            std::cout << "We built the following spaceship: ";
-            std::cout << space_ship->description() << "\n\n";
+            log.optional() << "We built the following spaceship: ";
+            log.important() << space_ship->description() << "\n";
         } else {
-            std::cout
+            log.optional()
                 << "Sorry, not enough parts to build a spaceship, exiting\n";
             break;
         }
