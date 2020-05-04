@@ -7,6 +7,8 @@
 #include <random>
 #include <algorithm>
 
+#include <string_view>
+
 char partsFileName[128] = "vehicle_parts.txt";
 
 std::vector<std::string> allParts;
@@ -84,19 +86,28 @@ void Spaceship::GenerateShip(Spaceship* pOutShip) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc > 1) {
-        strcpy(partsFileName, argv[1]);
-    }
+    const auto parts_file = [argc, argv]() -> std::string {
+        if (argc == 2) {
+            return argv[1];
+        } else {
+#ifdef PARTS_FILE
+            return PARTS_FILE;
+#else
+            return "vehicle_parts.txt";
+#endif
+        }
+    }();
 
-    std::cout << "parts loaded from: " << partsFileName << '\n';
+    std::cout << "Loading parts from: " << parts_file << '\n';
 
-    std::ifstream file(partsFileName);
-    if (file.is_open()) {
+    if (std::ifstream file{parts_file}; file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
             allParts.push_back(line);
         }
-        file.close();
+    } else {
+        std::cerr << "Failed to open file " << parts_file << std::endl;
+        std::exit(-1);
     }
 
     Spaceship sp;
