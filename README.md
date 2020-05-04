@@ -1,3 +1,5 @@
+![CI](https://github.com/BenjaminNavarro/random_spaceship_game/workflows/CI/badge.svg?branch=master)
+
 Spaceship generator
 ===================
 
