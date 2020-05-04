@@ -314,12 +314,12 @@ std::string Warehouse::description() {
         }
     };
     print_vector(engines(), "engines");
-    print_vector(fuselages(), "fuselage");
-    print_vector(cabins(), "cabin");
-    print_vector(armors(), "armor");
+    print_vector(fuselages(), "fuselages");
+    print_vector(cabins(), "cabins");
+    print_vector(armors(), "armors");
     print_vector(smallWings(), "small wings");
     print_vector(largeWings(), "large wings");
-    print_vector(weapons(), "weapon");
+    print_vector(weapons(), "weapons");
     return ss.str();
 }
 
