@@ -5,7 +5,6 @@ PointerAlignment: Left
 BreakBeforeBraces: Attach
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 AllowShortFunctionsOnASingleLine: false
-SortIncludes:    false
 ColumnLimit:     80
 IndentWidth:     4
 AccessModifierOffset: -4
